@@ -1,4 +1,5 @@
 # Varendra University CSE Class Routine
+https://reemuree.github.io/VU_CSE_CLASS_ROUTINE/
 
 An intuitive, easy-to-use web application for viewing the Computer Science & Engineering (CSE) department class routine at Varendra University.
 
