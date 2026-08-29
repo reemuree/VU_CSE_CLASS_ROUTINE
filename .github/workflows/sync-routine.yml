@@ -41,14 +41,6 @@ jobs:
       - name: Read the official CSE faculty directory
         run: python sync_faculty.py
 
-      - name: Read the official NFE faculty directory
-        env:
-          VU_FACULTY_DEPARTMENT: nfe
-          VU_FACULTY_URL: https://vu.edu.bd/academics/departments/nutrition-and-food-engineering/faculty-members
-          VU_FACULTY_DESTINATION: official-faculty-nfe.json
-          VU_FACULTY_MINIMUM: "3"
-        run: python sync_faculty.py
-
       - name: Read the official CSE routines
         env:
           VU_STUDENT_ROLL: ${{ secrets.CSE_VU_STUDENT_ROLL }}
@@ -58,23 +50,12 @@ jobs:
           VU_EXPECTED_PROGRAM: CSE
         run: python sync_routines.py
 
-      - name: Read the official NFE routines
-        env:
-          VU_STUDENT_ROLL: ${{ secrets.NFE_VU_STUDENT_ROLL }}
-          VU_STUDENT_PASSWORD: ${{ secrets.NFE_VU_STUDENT_PASSWORD }}
-          VU_DEPARTMENT: nfe
-          VU_ROUTINE_DESTINATION: routine-nfe.json
-          VU_EXPECTED_PROGRAM: Nutrition and Food Engineering
-        run: python sync_routines.py
-
       - name: Publish data changes
         shell: bash
         run: |
           tracked_data=(
             routine.json
-            routine-nfe.json
             assets/official-faculty.json
-            assets/official-faculty-nfe.json
           )
           if git diff --quiet -- "${tracked_data[@]}"; then
             echo "No published routine or faculty changes."
@@ -83,5 +64,5 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add "${tracked_data[@]}"
-          git commit -m "chore: sync official CSE and NFE data"
+          git commit -m "chore: sync official CSE data"
           git push
