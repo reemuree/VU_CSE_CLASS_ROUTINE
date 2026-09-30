@@ -15,6 +15,7 @@ const t0=()=>{const d=new Date(now());return Date.UTC(d.getUTCFullYear(),d.getUT
 let D,slots={},tch=new Map(),sem=+ls('sem')||0,sec=+ls('sec')||0,day=null,cal=null,selOff=0,q='';
 
 const sched=()=>D.schedules.find(s=>s.semesterId===sem&&s.sectionId===sec);
+const setSel=(ns,nc)=>{sem=ns;sec=nc;ls('sem',sem);ls('sec',sec)};
 const forDay=(sc,off)=>{const T=t0()+off*864e5,d=new Date(T),dn=sc.days.find(x=>x.name===DAYS[d.getUTCDay()]);
  return(dn?dn.classes:[]).map(c=>{const sl=slots[c.slot];return{...c,off,T,s:sl.start,e:sl.end,start:T+mins(sl.start)*6e4,end:T+mins(sl.end)*6e4}})};
 const occs=(sc,from,n)=>Array.from({length:n},(_,i)=>forDay(sc,from+i)).flat();
@@ -99,7 +100,7 @@ function render(){
  if(!D)return;
  const v=NAV.some(x=>x[0]===view())?view():'home',n=now();
  $('#nav').innerHTML=NAV.map(([id,i,l])=>`<a href="#${id}" class="${id===v?'on':''}" ${id===v?'aria-current="page"':''}><i>${i}</i>${id==='settings'?'<span class="mb">More</span><span class="dk">Settings</span>':l}</a>`).join('');
- if(!sched()){const f=D.schedules[0];sem=f.semesterId;sec=f.sectionId}
+ if(!sched()){const f=D.schedules[0];setSel(f.semesterId,f.sectionId)}
  const sc=sched(),keep=document.activeElement&&document.activeElement.id==='q';
  if(keep&&v==='search')return;
  app.innerHTML=v==='home'?home(sc,n):v==='routine'?routine(sc,n):v==='calendar'?calendar(sc,n):v==='search'?search():settings();
@@ -131,8 +132,8 @@ app.addEventListener('keydown',e=>{
  if((e.key==='Enter'||e.key===' ')&&e.target.matches('[role=button]')){e.preventDefault();e.target.click()}
 });
 app.addEventListener('change',e=>{
- if(e.target.id==='sem'){sem=+e.target.value;sec=D.schedules.find(s=>s.semesterId===sem).sectionId;ls('sem',sem);ls('sec',sec);render()}
- if(e.target.id==='sec'){sec=+e.target.value;ls('sec',sec);render()}
+ if(e.target.id==='sem'){const ns=+e.target.value;setSel(ns,D.schedules.find(s=>s.semesterId===ns).sectionId);render()}
+ if(e.target.id==='sec'){setSel(sem,+e.target.value);render()}
 });
 app.addEventListener('input',e=>{if(e.target.id==='q'){q=e.target.value;$('#res').innerHTML=results()}});
 let sx=0;
