@@ -28,17 +28,19 @@ const cd=ms=>{ms=Math.max(0,ms);const s=Math.floor(ms/1e3),d=Math.floor(s/86400)
  return d?`${d}d ${pad(h)}h ${pad(m)}m`:`${pad(h)}:${pad(m)}:${pad(s%60)}`};
 const hue=s=>{let h=0;for(const c of s)h=(h*31+c.charCodeAt(0))%360;return h};
 const sub=code=>(code.match(/[A-Za-z]+/)||[code])[0].slice(0,3).toUpperCase();
+const curDay=()=>day||(day=DAYS[new Date(t0()).getUTCDay()]);
 
 const card=(o,n)=>{const s=status(o,n),h=hue(o.code);return`<article class="cls ${s}"><span class="ic" style="--h:${h}">${esc(sub(o.code))}</span><div class="m"><div class="top"><span class="tag">${LBL[s][0]} ${LBL[s][1]}</span><span class="tm">${f12(o.s)}–${f12(o.e)}</span></div><h3>${esc(o.title)}</h3><div class="pills"><span class="pill code">${esc(o.code)}</span><span class="pill rm">🚪 Room ${esc(o.room)}</span>${o.type==='lab'?'<span class="pill">🧪 LAB</span>':''}</div><div class="tl">${teachers(o)}</div></div></article>`};
 const list=(a,n,m)=>a.length?`<div class="list">${a.map(o=>card(o,n)).join('')}</div>`:`<p class="empty">${m||'No classes.'}</p>`;
 
 function myClass(sc){
- const ti=new Date(t0()).getUTCDay(),sems=[...new Map(D.schedules.map(s=>[s.semesterId,s.semester]))],secs=D.schedules.filter(s=>s.semesterId===sem);
- const cols=WK.map(d=>{const cl=sc.days.find(x=>x.name===d).classes;if(!cl.length)return'';const td=DAYS[ti]===d;
-  return`<div class="dc ${td?'td':''}" tabindex="0" role="button" data-goday="${d}"><b>${d.slice(0,3)}${td?' · Today':''}</b>${cl.map(c=>`<span class="mi"><span class="mit"><span class="ic sm" style="--h:${hue(c.code)}">${esc(sub(c.code))}</span><span><strong>${esc(c.title)}</strong><em>${f12(slots[c.slot].start)} · ${esc(c.code)} · Room ${esc(c.room)}</em></span></span><div class="tl sm">${teachers(c,1)}</div></span>`).join('')}</div>`}).join('');
+ const ti=new Date(t0()).getUTCDay(),todayName=DAYS[ti];curDay();
+ const sems=[...new Map(D.schedules.map(s=>[s.semesterId,s.semester]))],secs=D.schedules.filter(s=>s.semesterId===sem);
+ const tabs=WK.map(d=>`<button class="${d===day?'on':''} ${d===todayName?'td':''}" data-goday="${d}">${d.slice(0,3)}<small>${sc.days.find(x=>x.name===d).classes.length} cls</small></button>`).join('');
  return`<section class="card mycls"><div class="mh"><div><small>MY CLASS</small><h3>${esc(sc.semester)} · Section ${esc(sc.section)}</h3></div>
  <div class="pk"><select id="sem" aria-label="Semester">${sems.map(([id,l])=>`<option value="${id}" ${id===sem?'selected':''}>${esc(l)}</option>`).join('')}</select><select id="sec" aria-label="Section">${secs.map(s=>`<option value="${s.sectionId}" ${s.sectionId===sec?'selected':''}>Sec ${esc(s.section)}</option>`).join('')}</select></div></div>
- <div class="wk">${cols}</div></section>`}
+ <p class="mclabel">📝 Tap a day to open its full routine</p>
+ <div class="tabs mytabs">${tabs}</div></section>`}
 function home(sc,n){
  const all=occs(sc,0,15),live=all.find(o=>n>=o.start&&n<o.end),nx=all.find(o=>o.start>n),c=live||nx;
  const today=forDay(sc,0),done=today.filter(o=>n>=o.end).length;
@@ -54,8 +56,8 @@ function home(sc,n){
  <div><h2>Today’s timeline</h2>${list(today,n,'No classes today.')}<h2>Coming next</h2>${list(after,n,'Nothing scheduled ahead.')}</div></div>`}
 
 function routine(sc,n){
- const ti=new Date(t0()).getUTCDay();if(day===null)day=DAYS[ti];
- const tabs=WK.map(d=>`<button class="${d===day?'on':''}" data-day="${d}">${d.slice(0,3)}<small>${sc.days.find(x=>x.name===d).classes.length} cls</small></button>`).join('');
+ const ti=new Date(t0()).getUTCDay(),todayName=DAYS[ti];curDay();
+ const tabs=WK.map(d=>`<button class="${d===day?'on':''} ${d===todayName?'td':''}" data-day="${d}">${d.slice(0,3)}<small>${sc.days.find(x=>x.name===d).classes.length} cls</small></button>`).join('');
  const off=(DAYS.indexOf(day)-ti+7)%7;
  return`<div class="tabs">${tabs}</div>${list(forDay(sc,off),n,'No classes on '+day+'.')}`}
 
@@ -120,16 +122,13 @@ function theme(t){ls('theme',t);const r=t==='system'?(matchMedia('(prefers-color
 matchMedia('(prefers-color-scheme:dark)').addEventListener('change',()=>(ls('theme')||'system')==='system'&&theme('system'));
 
 app.addEventListener('click',e=>{
- const b=e.target.closest('button,[role=button]');if(!b)return;const d=b.dataset;
+ const b=e.target.closest('button');if(!b)return;const d=b.dataset;
  if(d.t)openT(d.t);
  else if(d.goday){day=d.goday;location.hash='#routine'}
  else if(d.day){day=d.day;render()}
  else if(d.off!==undefined){selOff=+d.off;render()}
  else if(d.mv){cal.m+=+d.mv;if(cal.m>11){cal.m=0;cal.y++}if(cal.m<0){cal.m=11;cal.y--}render()}
  else if(d.th){theme(d.th);render()}
-});
-app.addEventListener('keydown',e=>{
- if((e.key==='Enter'||e.key===' ')&&e.target.matches('[role=button]')){e.preventDefault();e.target.click()}
 });
 app.addEventListener('change',e=>{
  if(e.target.id==='sem'){const ns=+e.target.value;setSel(ns,D.schedules.find(s=>s.semesterId===ns).sectionId);render()}
